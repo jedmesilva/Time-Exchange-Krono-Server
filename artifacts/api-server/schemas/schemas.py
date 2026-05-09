@@ -59,6 +59,10 @@ class SkillResponse(BaseModel):
 # BALANCES
 # ─────────────────────────────────────────────
 
+class BalanceDepositRequest(BaseModel):
+    amount: float
+
+
 class BalanceResponse(BaseModel):
     amount: float
     debt_interest: float

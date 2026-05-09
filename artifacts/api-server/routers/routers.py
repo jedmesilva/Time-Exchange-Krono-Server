@@ -8,7 +8,7 @@ from models.enums import OrderStatus, OrderType, SeriesStatus, RepurchaseType
 from schemas.schemas import (
     RegisterRequest, LoginRequest, TokenResponse,
     UserPublic, SkillCreate, SkillResponse,
-    BalanceResponse, SeriesCreate, SeriesResponse,
+    BalanceDepositRequest, BalanceResponse, SeriesCreate, SeriesResponse,
     PositionResponse, OrderCreate, OrderResponse, OrderBookResponse,
     TransactionResponse, MarketPriceResponse, LiabilityResponse, HonorScoreResponse,
     YieldCurvePoint, YieldCurveResponse, RollCheckResponse,
@@ -149,6 +149,42 @@ async def get_balance(
     balance = result.scalar_one_or_none()
     if not balance:
         raise HTTPException(status_code=404, detail="Saldo não encontrado")
+    return balance
+
+
+@balances_router.post("/deposit", response_model=BalanceResponse)
+async def deposit(
+    body: BalanceDepositRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if body.amount <= 0:
+        raise HTTPException(status_code=400, detail="Valor deve ser positivo")
+    result = await db.execute(select(Balance).where(Balance.user_id == current_user.id))
+    balance = result.scalar_one_or_none()
+    if not balance:
+        balance = Balance(user_id=current_user.id, amount=body.amount)
+        db.add(balance)
+    else:
+        balance.amount = float(balance.amount) + body.amount
+        balance.updated_at = datetime.utcnow()
+    return balance
+
+
+@balances_router.post("/withdraw", response_model=BalanceResponse)
+async def withdraw(
+    body: BalanceDepositRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if body.amount <= 0:
+        raise HTTPException(status_code=400, detail="Valor deve ser positivo")
+    result = await db.execute(select(Balance).where(Balance.user_id == current_user.id))
+    balance = result.scalar_one_or_none()
+    if not balance or float(balance.amount) < body.amount:
+        raise HTTPException(status_code=400, detail="Saldo insuficiente")
+    balance.amount = float(balance.amount) - body.amount
+    balance.updated_at = datetime.utcnow()
     return balance
 
 

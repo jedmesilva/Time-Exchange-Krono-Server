@@ -123,7 +123,7 @@ class Order(Base):
     time_series: Mapped["TimeSeries"] = relationship(back_populates="orders")
 
     __table_args__ = (
-        CheckConstraint("quantity_hours > 0", name="ck_order_quantity_positive"),
+        CheckConstraint("quantity_hours >= 0", name="ck_order_quantity_nonneg"),
         CheckConstraint("price_hour > 0", name="ck_order_price_positive"),
     )
 

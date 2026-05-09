@@ -12,8 +12,8 @@ Prioridade: preço melhor primeiro, depois FIFO.
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
-from models.models import Order, Position, Transaction, MarketPrice, TimeSeries
-from models.enums import OrderType, OrderStatus, TransactionType, SeriesStatus
+from models.models import Order, Position, Transaction, MarketPrice, TimeSeries, Balance
+from models.enums import OrderType, OrderStatus, TransactionType, SeriesStatus, PaymentMode
 
 
 async def match_order(order: Order, db: AsyncSession) -> list[Transaction]:
@@ -99,6 +99,15 @@ async def match_order(order: Order, db: AsyncSession) -> list[Transaction]:
             db=db,
         )
 
+        if bid_order.payment_mode == PaymentMode.MONEY:
+            total = float(matched_hours) * float(transaction_price)
+            await _transfer_balance(
+                from_user_id=bid_order.user_id,
+                to_user_id=ask_order.user_id,
+                amount=total,
+                db=db,
+            )
+
         series_result = await db.execute(
             select(TimeSeries).where(TimeSeries.id == order.time_series_id)
         )
@@ -125,6 +134,35 @@ async def _is_primary(time_series_id: str, db: AsyncSession) -> bool:
         select(Transaction).where(Transaction.time_series_id == time_series_id).limit(1)
     )
     return result.scalar_one_or_none() is None
+
+
+async def _transfer_balance(
+    from_user_id: str,
+    to_user_id: str,
+    amount: float,
+    db: AsyncSession,
+):
+    from_result = await db.execute(
+        select(Balance).where(Balance.user_id == from_user_id)
+    )
+    from_balance = from_result.scalar_one_or_none()
+    if from_balance:
+        from_balance.amount = float(from_balance.amount) - amount
+        from_balance.updated_at = datetime.utcnow()
+    else:
+        from_balance = Balance(user_id=from_user_id, amount=-amount)
+        db.add(from_balance)
+
+    to_result = await db.execute(
+        select(Balance).where(Balance.user_id == to_user_id)
+    )
+    to_balance = to_result.scalar_one_or_none()
+    if to_balance:
+        to_balance.amount = float(to_balance.amount) + amount
+        to_balance.updated_at = datetime.utcnow()
+    else:
+        to_balance = Balance(user_id=to_user_id, amount=amount)
+        db.add(to_balance)
 
 
 async def _update_positions(
