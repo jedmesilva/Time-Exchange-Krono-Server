@@ -1,5 +1,5 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from database import engine, Base, AsyncSessionLocal
@@ -66,3 +66,10 @@ app.include_router(rolls_router, prefix=PREFIX)
 @app.get("/api/healthz", tags=["health"])
 async def health():
     return {"status": "ok", "service": "krono"}
+
+
+@app.post("/api/admin/liquidate", tags=["admin"])
+async def trigger_liquidation():
+    """Dispara o ciclo de liquidação manualmente (para testes)."""
+    await run_liquidations(AsyncSessionLocal)
+    return {"status": "ok", "message": "Liquidação executada"}
