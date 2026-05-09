@@ -8,7 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from database import Base
 from models.enums import (
     RepurchaseType, SeriesStatus, OrderType, OrderStatus,
-    PaymentMode, PaymentPriceType, TransactionType,
+    PaymentMode, PaymentPriceType, TransactionType, KycStatus,
 )
 
 
@@ -159,6 +159,26 @@ class MarketPrice(Base):
     recorded_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
 
     time_series: Mapped["TimeSeries"] = relationship(back_populates="market_prices")
+
+
+class KycRequest(Base):
+    __tablename__ = "kyc_requests"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=gen_uuid)
+    user_id: Mapped[str] = mapped_column(String, ForeignKey("users.id"), nullable=False)
+    document: Mapped[str] = mapped_column(String, nullable=False)
+    status: Mapped[KycStatus] = mapped_column(Enum(KycStatus), nullable=False, default=KycStatus.PENDING)
+    provider: Mapped[str | None] = mapped_column(String, nullable=True)
+    provider_request_id: Mapped[str | None] = mapped_column(String, nullable=True, unique=True)
+    rejection_reason: Mapped[str | None] = mapped_column(String, nullable=True)
+    submitted_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+    user: Mapped["User"] = relationship()
+
+    __table_args__ = (
+        UniqueConstraint("user_id", name="uq_kyc_one_per_user"),
+    )
 
 
 class Roll(Base):

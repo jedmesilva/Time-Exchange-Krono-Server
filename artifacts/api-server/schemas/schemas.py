@@ -2,7 +2,7 @@ from datetime import datetime
 from pydantic import BaseModel, EmailStr
 from models.enums import (
     RepurchaseType, SeriesStatus, OrderType, OrderStatus,
-    PaymentMode, PaymentPriceType, TransactionType,
+    PaymentMode, PaymentPriceType, TransactionType, KycStatus,
 )
 
 

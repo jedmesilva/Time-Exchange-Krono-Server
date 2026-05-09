@@ -8,6 +8,7 @@ from routers.routers import (
     series_router, positions_router, orders_router,
     transactions_router, market_router, rolls_router,
 )
+from routers.kyc import kyc_router
 from services.liquidation import run_liquidations
 
 scheduler = AsyncIOScheduler()
@@ -61,6 +62,7 @@ app.include_router(orders_router, prefix=PREFIX)
 app.include_router(transactions_router, prefix=PREFIX)
 app.include_router(market_router, prefix=PREFIX)
 app.include_router(rolls_router, prefix=PREFIX)
+app.include_router(kyc_router, prefix=PREFIX)
 
 
 @app.get("/api/healthz", tags=["health"])

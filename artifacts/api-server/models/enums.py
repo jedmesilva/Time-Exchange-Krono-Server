@@ -39,3 +39,10 @@ class TransactionType(str, enum.Enum):
     PRIMARY = "PRIMARY"
     SECONDARY = "SECONDARY"
     LIQUIDATION = "LIQUIDATION"
+
+
+class KycStatus(str, enum.Enum):
+    PENDING = "PENDING"
+    IN_REVIEW = "IN_REVIEW"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
